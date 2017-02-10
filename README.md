@@ -3,7 +3,7 @@ School project
 
 ## Contributors
 
-* Bastiaens Olivier
-* Castiaux Julien
+* [Bastiaens Olivier](https://github.com/bastiaens)
+* [Castiaux Julien](https://github.com/Julien00859)
 * Danthine Kevin
 * Petit Martin
