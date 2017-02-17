@@ -9,5 +9,5 @@ School project
 
 * [Bastiaens Olivier](https://github.com/bastiaens)
 * [Castiaux Julien](https://github.com/Julien00859)
-* Danthine Kevin
+* [Danthine Kevin](https://github.com/superuserC)
 * Petit Martin
