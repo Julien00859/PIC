@@ -1,6 +1,7 @@
 #include <18F458.h>
 #device ADC=10
 #use delay(crystal=20000000)
+#use rs232(baud=57600,parity=N,xmit=PIN_C6,rcv=PIN_C7,bits=8)
 
 #define BCD_UNITS(x) (x % 10)
 #define BCD_TENS(x) (x / 10)
@@ -20,6 +21,9 @@ void main()
       temperature = read_adc() * 100 / 1024;
       gestionLed(temperature,seuil); 
       affTemp(temperature);
+      printf("%d",temperature);
+      seuil = getc();
+      
    }
 }
 
