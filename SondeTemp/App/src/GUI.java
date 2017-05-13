@@ -1,97 +1,113 @@
 package julien2;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import gnu.io.CommPortIdentifier;
-import gnu.io.NoSuchPortException;
-import gnu.io.PortInUseException;
-import gnu.io.SerialPort;
-import gnu.io.UnsupportedCommOperationException;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.util.Observable;
+import java.util.Observer;
 
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JList;
+import javax.swing.JPanel;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.border.EmptyBorder;
 
-public class PIC implements Runnable {
-	
-	private final String PORT = "COM2";
-	private final int TIMEOUT = 2000;
-	private final int BAUDRATE = 2400;
-	private final int BITSTOREAD = SerialPort.DATABITS_8;
-	private final int STOPBITS = SerialPort.STOPBITS_1;
-	private final int PARITY = SerialPort.PARITY_NONE;
-	
-	private SerialPort serialPort = null;
-	private InputStream inStr = null;
-	private OutputStream outStr = null;
+public class GUI extends JFrame implements Observer{
+	private JLabel lbTemp,lblY;
 	private Temperature temperature;
-	private boolean running;
+	private PIC pic;
 	
-	/**
-	 * Initiate the connection with the COM port
-	 */
-	public PIC(Temperature temperature) {
-		this.temperature = temperature;
+	GUI(Temperature temp, PIC pic) {
+		this.temperature = temp;
+		this.pic = pic;
 		
-		try {
-			this.serialPort = (SerialPort) CommPortIdentifier
-						      .getPortIdentifier(PORT)
-						      .open("WeAreTheNumberOne", TIMEOUT);
-			this.serialPort.setSerialPortParams(BAUDRATE, BITSTOREAD, STOPBITS, PARITY);
-			this.inStr = serialPort.getInputStream();
-			this.outStr = serialPort.getOutputStream();
-		} catch (NoSuchPortException | PortInUseException e) {
-			e.printStackTrace(System.err);
-			System.exit(1);
-		} catch (UnsupportedCommOperationException | IOException e) {
-			e.printStackTrace(System.err);
-			serialPort.close();
-			System.exit(1);
-		}
-	}
-	
-	/**
-	 * Read data from the COM port and update the temperature object
-	 */
-	public void run() {
-		byte b[] = new byte[1];
+		temp.addObserver(this);
 		
-		setRunning(true);
-		System.out.println("Reader started");
-		while (getRunning()) {
-			try {
-				if (inStr.read(b, 0, 1) == -1) {
-					System.out.println("End of stream");
-					setRunning(false);
-					break;
+		JPanel contentPane;
+		JTextField textField;
+		
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setBounds(100, 100, 498, 300);
+		contentPane = new JPanel();
+		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
+		setContentPane(contentPane);
+		contentPane.setLayout(null);
+		
+		JLabel lblApplicationPortSrie = new JLabel("Application port s\u00E9rie");
+		lblApplicationPortSrie.setFont(new Font("Tahoma", Font.BOLD, 14));
+		lblApplicationPortSrie.setBounds(10, 11, 157, 32);
+		contentPane.add(lblApplicationPortSrie);
+		
+		JLabel lblTemprature = new JLabel("Temp\u00E9rature:");
+		lblTemprature.setBounds(0, 54, 89, 14);
+		contentPane.add(lblTemprature);
+		
+		JLabel lblModificationDeLa = new JLabel("Modification de la Temp\u00E9rature seuil:");
+		lblModificationDeLa.setBounds(10, 104, 200, 14);
+		contentPane.add(lblModificationDeLa);
+		
+		textField = new JTextField();
+		textField.setBounds(10, 129, 173, 20);
+		contentPane.add(textField);
+		textField.setColumns(10);
+		
+		this.lbTemp = new JLabel("X");
+		lbTemp.setBounds(96, 54, 46, 14);
+		contentPane.add(lbTemp);
+		
+		JLabel lblNewLabel = new JLabel("Temp seuil");
+		lblNewLabel.setBounds(10, 79, 74, 14);
+		contentPane.add(lblNewLabel);
+		
+		JLabel lblY = new JLabel("Y");
+		lblY.setBounds(96, 79, 46, 14);
+		contentPane.add(lblY);
+		
+		JButton btnSend = new JButton("Send");
+		btnSend.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if (textField.getText().length() < 4){
+					if (textField.getText().matches("[0-9]+")){
+						
+						int i = Integer.parseInt(textField.getText());
+						if(i <= 100 && i >= 0){
+							pic.send((byte) i);
+							lblY.setText(Integer.toString(i) + " °C");
+						}
+						
+					}
 				}
-			} catch (IOException e) {
-				e.printStackTrace(System.err);
-				setRunning(false);
-				break;
+				
 			}
-			System.out.println("Read from COM port: " + b[0]);
-			temperature.setTemp((int) b[0] & 0b01111111);
-			temperature.setOverHeating((b[0] >> 7) == -1);
-		}
-		System.out.println("Reader exited");
+		});
+		btnSend.setBounds(195, 129, 89, 23);
+		contentPane.add(btnSend);
+		this.addWindowListener(new WindowAdapter()
+		{
+		    public void windowClosing(WindowEvent e)
+		    {
+		       pic.setRunning(false);
+		       dispose();
+		    }
+		});
 	}
 	
-	/**
-	 * Send one byte on the COM port
-	 */
-	public void send(byte b) {
-		System.out.println("Send to COM port: " + b);
-		try {
-			this.outStr.write(b>>>0);
-		} catch (IOException e) {
-			e.printStackTrace(System.err);
-		}
-	}
-
-	synchronized public void setRunning(boolean b) {
-		this.running = b;
-	}
 	
-	synchronized public boolean getRunning() {
-		return this.running;
+	@Override
+	public void update(Observable obs, Object obj) {
+		this.lbTemp.setText(this.temperature.getTemp() + " °C");
+	
+		if (temperature.isOverHeating()){
+			this.lbTemp.setForeground(Color.RED);
+		} else {
+			this.lbTemp.setForeground(Color.BLACK);
+		}
 	}
 }
